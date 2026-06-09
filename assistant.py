@@ -12,16 +12,24 @@ MODEL = 'gpt-4o'
 SYSTEM_PROMPT = """
 You are a weather assistant.
 Only answer weather-related questions.
+Only answer questions about one city at a time.
+If Multiple cities are requested, ask the user to provide one city.
 If the question is not about weather,
 politely say 'I can help with weather questions.'
 """
 
 def get_weather(city):
-    url=f'https://wttr.in/{city}?format=%C+%t'
-    response = requests.get(url, timeout=10)
-    if response.status_code != 200:
-        return "Unable to retrieve weather information."
-    return response.text
+    
+    try:
+        url=f'https://wttr.in/{city}?format=%C+%t'
+        response = requests.get(url, timeout=10)
+
+        if response.status_code != 200:
+            return "Unable to retrieve weather information."
+        return response.text
+    except Exception:
+         return "Weather service is unavailable."
+
 
 tools = [
     {
@@ -65,7 +73,10 @@ def ask_weather_assistant(question):
     tool_call = message.tool_calls[0]
 
     # print(tool_call)
-    arguments = json.loads(tool_call.function.arguments)
+    try:
+         arguments = json.loads(tool_call.function.arguments)
+    except json.JSONDecodeError:
+         return "Sorry, I couldn't process the weather request."
     # print(arguments)
     weather = get_weather(arguments["city"])
     # print(weather)
